@@ -1,34 +1,94 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import React, {useState} from 'react'
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom'
+import { Typography, Container, Button, Box, Grid } from '@mui/material'
+import ActivePollsPage from './components/ActivePollsPage'
+import CreatePollForm from './components/CreatePollForm'
+import MyPollsPage from './components/MyPollsPage'
+import CompletedPollsPage from './components/CompletePollsPage'
+import PollDetailPage from './components/PollDetails'
+import { useAsyncEffect } from 'use-async-effect'
+import { WalletClient } from '@bsv/sdk'
+import { checkForMetaNetClient, NoMncModal } from 'metanet-react-prompt'
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [MNCmissing, setMNCMissing] = useState<boolean>(false)
 
+  useAsyncEffect(async () =>{
+    const intervalId = setInterval(async () => {
+      const hasMNC = await checkForMetaNetClient()
+      if(hasMNC===0){
+        setMNCMissing(true)
+      }else{
+        const walletclient = await new WalletClient()
+        await walletclient.waitForAuthentication()
+        clearInterval(intervalId)
+        setMNCMissing(false)
+      }
+    },1000)
+    return () => {
+      clearInterval(intervalId)
+    }
+
+  },[])
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+
+    <Router>
+      <NoMncModal appName={'Pollr'} open={MNCmissing} onClose={() => setMNCMissing(false)} />
+      <Container maxWidth="sm" style={{ marginTop: '2em', paddingBottom: '80px' }}>
+        <Typography variant="h4" component="h1" gutterBottom align="center">
+          Pollr
+        </Typography>
+
+        <Box sx={{ margin: '2em 0' }}>
+          <Grid container spacing={2} justifyContent="center">
+            <Grid item xs={3}>
+              <Button variant="contained" color="primary" fullWidth component={Link} to="/Active-polls">
+                Active Polls
+              </Button>
+            </Grid>
+            <Grid item xs={3}>
+              <Button variant="contained" color="primary" fullWidth component={Link} to="/">
+                Create Poll
+              </Button>
+            </Grid>
+            <Grid item xs={3}>
+              <Button variant="contained" color="primary" fullWidth component={Link} to="/MyPolls">
+                My Polls
+              </Button>
+            </Grid>
+            <Grid item xs={3}>
+              <Button variant="contained" color="primary" fullWidth component={Link} to="/CompletedPolls" style={{ whiteSpace: 'nowrap' }}>
+                Completed Polls
+              </Button>
+            </Grid>
+          </Grid>
+        </Box>
+
+        <Routes>
+          <Route path="/Active-polls" element={<ActivePollsPage />} />
+          <Route path="/" element={<CreatePollForm />} />
+          <Route path="/MyPolls" element={<MyPollsPage />} />
+          <Route path="/CompletedPolls" element={<CompletedPollsPage />} />
+          <Route path="/poll/:pollId" element={<PollDetailPage />} />
+        </Routes>
+      </Container>
+
+      <footer style={{
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        textAlign: 'center',
+        padding: '10px 0'
+      }}>
+        <Typography variant="body2" color="textSecondary">
+          Visit the code on{' '}
+          <a href="https://github.com/p2ppsr/Pollr" target="_blank" rel="noopener noreferrer">
+            GitHub
+          </a>
+        </Typography>
+      </footer>
+    </Router>
   )
 }
 
